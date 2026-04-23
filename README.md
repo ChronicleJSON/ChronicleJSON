@@ -325,3 +325,5 @@ Found a gap, an ambiguity, or a variant that should exist? Open an issue. Pull r
 # License
 
 Licenced under MIT. See LICENSE.
+
+ChronicleJSON is an unofficial community format. Blood on the Clocktower is a trademark of The Pandemonium Institute. This project is not affiliated with, endorsed by, or sponsored by The Pandemonium Institute.
