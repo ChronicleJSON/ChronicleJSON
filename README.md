@@ -1,6 +1,6 @@
 # ChronicleJSON Format
 
-The **chronicle** is the self-contained JSON representation of a finished (or in-progress) Blood on the Clocktower game. It bundles the script name, the roster, the winner, and a stream of phases, each with its own events and Storyteller notes. Enough to reconstruct the game or narrate it elsewhere.
+The **chronicle** is the self-contained JSON representation of a finished (or in-progress) [Blood on the Clocktower](https://bloodontheclocktower.com) game. It bundles the script name, the roster, the winner, and a stream of phases, each with its own events and Storyteller notes. Enough to reconstruct the game or narrate it elsewhere.
 
 ## Status
 
