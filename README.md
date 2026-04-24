@@ -245,11 +245,6 @@ A short 5-player Trouble Brewing game: nobody dies Day 1, Imp kills the Empath N
           "gameStart": { "playerCount": 5 },
           "id": "6C6E0F80-0000-4000-8000-000000000001",
           "timestamp": "2026-04-23T10:00:00.000Z"
-        },
-        {
-          "grimoirePhoto": { "timing": "start" },
-          "id": "6C6E0F80-0000-4000-8000-000000000002",
-          "timestamp": "2026-04-23T10:00:10.000Z"
         }
       ],
       "notes": null,
@@ -291,11 +286,6 @@ A short 5-player Trouble Brewing game: nobody dies Day 1, Imp kills the Empath N
           "death": { "playerPosition": 3, "reason": "executed" },
           "id": "6C6E0F80-0000-4000-8000-000000000006",
           "timestamp": "2026-04-23T10:35:00.000Z"
-        },
-        {
-          "grimoirePhoto": { "timing": "end" },
-          "id": "6C6E0F80-0000-4000-8000-000000000007",
-          "timestamp": "2026-04-23T10:35:10.000Z"
         },
         {
           "gameEnd": { "winner": "good" },
