@@ -4,7 +4,7 @@ The **chronicle** is the self-contained JSON representation of a finished (or in
 
 ## Status
 
-* Version: 0.1
+* Version: 0.2
 * Used in production by [Blocktower](https://apps.apple.com/us/app/blocktower-botc-toolkit/id6758778915) and [Slaydate](https://slaydate.app).
 * Expect breaking changes before 1.0.
 
@@ -187,6 +187,16 @@ The Storyteller may reclassify a death after the fact, this rewrites the `reason
 ```
 
 Storyteller brought a dead player back to life.
+
+### `deadVoteUsed`
+
+```json
+"deadVoteUsed": {
+  "playerPosition": 2
+}
+```
+
+A dead player has spent their one-shot dead vote token. Usually emitted alongside a `nominationForExecution` the player voted on, but the Storyteller may record it at any time — including outside a vote, e.g. as a penalty or to reflect a side-effect of an ability. The event stands alone and is not tied to a specific `voteResult`. Mis-recorded entries are corrected by removing the entry, not by emitting a counter-event.
 
 ### `characterChange`
 
