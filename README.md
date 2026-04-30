@@ -4,7 +4,7 @@ The **chronicle** is the self-contained JSON representation of a finished (or in
 
 ## Status
 
-* Version: 0.2
+* Version: 0.3
 * Used in production by [Blocktower](https://apps.apple.com/us/app/blocktower-botc-toolkit/id6758778915) and [Slaydate](https://slaydate.app).
 * Expect breaking changes before 1.0.
 
@@ -40,6 +40,7 @@ The **chronicle** is the self-contained JSON representation of a finished (or in
 | Field | Type | Notes |
 |-------|------|-------|
 | `position` | integer | Seat index in the circular layout, **1-based**. `players[0]` has `position: 1`. |
+| `id` | string \| null | Optional external identifier for the player, carried through if the producing system has one (account id, roster id, etc). Opaque to ChronicleJSON; not required to be a UUID. Omit or set to null when no such id is available. Events still reference players by `position`, not `id`. |
 | `name` | string \| null | Player's name. Null for unnamed seats. |
 | `characters` | array of string | Every character the player held, in time order. The final entry is the player's current / final character; an empty array means they were never assigned one. |
 | `alignment` | `"good"` \| `"evil"` \| null | The player's current / final alignment. Null when they were never assigned an alignment. Alignment usually tracks the character's team, but may diverge (a Goon, Pit Hag shenanigans, etc). Reconstruct the full alignment history from `alignmentChange` events. |
