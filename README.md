@@ -4,7 +4,7 @@ The **chronicle** is the self-contained JSON representation of a finished (or in
 
 ## Status
 
-* Version: 0.3
+* Version: 0.4
 * Used in production by [Blocktower](https://apps.apple.com/us/app/blocktower-botc-toolkit/id6758778915) and [Slaydate](https://slaydate.app).
 * Expect breaking changes before 1.0.
 
@@ -13,6 +13,10 @@ The **chronicle** is the self-contained JSON representation of a finished (or in
 ```json
 {
   "scriptName": "Trouble Brewing",
+  "storyteller": {
+    "name": "Steve",
+    "id": "abc-123"
+  },
   "winner": "good",
   "players": [ … ],
   "phases": [ … ]
@@ -22,9 +26,24 @@ The **chronicle** is the self-contained JSON representation of a finished (or in
 | Field | Type | Notes |
 |-------|------|-------|
 | `scriptName` | string \| null | Human-readable script name. Null for unnamed/custom scripts. |
+| `storyteller` | `Storyteller` \| null | The human who ran the game. See below. Omit or set to null when no Storyteller info is available. |
 | `winner` | `"good"` \| `"evil"` \| null | The Storyteller's recorded winner. Null for games ended without declaring a winner. |
 | `players` | array of `PlayerRecord` | Final roster. See below. |
 | `phases` | array of `ChroniclePhase` | Events grouped by phase, in play order. See below. |
+
+## `Storyteller`
+
+```json
+{
+  "name": "Steve",
+  "id": "abc-123"
+}
+```
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `name` | string \| null | Storyteller's name. Null when unnamed. |
+| `id` | string \| null | Optional external identifier for the Storyteller, carried through if the producing system has one (account id, roster id, etc). Opaque to ChronicleJSON; not required to be a UUID. Omit or set to null when no such id is available. |
 
 ## `PlayerRecord`
 
@@ -248,6 +267,7 @@ A short 5-player Trouble Brewing game: nobody dies Day 1, Imp kills the Empath N
 ```json
 {
   "scriptName": "Trouble Brewing",
+  "storyteller": { "name": "Steve", "id": null },
   "winner": "good",
   "phases": [
     {
