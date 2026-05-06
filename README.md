@@ -4,7 +4,7 @@ The **chronicle** is the self-contained JSON representation of a finished (or in
 
 ## Status
 
-* Version: 0.4
+* Version: 0.5
 * Used in production by [Blocktower](https://apps.apple.com/us/app/blocktower-botc-toolkit/id6758778915) and [Slaydate](https://slaydate.app).
 * Expect breaking changes before 1.0.
 
@@ -12,11 +12,10 @@ The **chronicle** is the self-contained JSON representation of a finished (or in
 
 ```json
 {
-  "scriptName": "Trouble Brewing",
-  "storyteller": {
-    "name": "Steve",
-    "id": "abc-123"
-  },
+  "script": "Trouble Brewing",
+  "storytellers": [
+    { "name": "Steve", "id": "abc-123" }
+  ],
   "winner": "good",
   "players": [ … ],
   "phases": [ … ]
@@ -25,11 +24,33 @@ The **chronicle** is the self-contained JSON representation of a finished (or in
 
 | Field | Type | Notes |
 |-------|------|-------|
-| `scriptName` | string \| null | Human-readable script name. Null for unnamed/custom scripts. |
-| `storyteller` | `Storyteller` \| null | The human who ran the game. See below. Omit or set to null when no Storyteller info is available. |
+| `script` | string \| `ScriptMetadata` \| null | The script played. A bare string is shorthand for `{ "name": "..." }` with all other fields null; use the object form to carry author, version, external id, or url. See below. Null for games without a known script. |
+| `storytellers` | array of `Storyteller` | The humans who ran the game. Order is informational, not significant. Empty array when no Storyteller info is available. See below. |
 | `winner` | `"good"` \| `"evil"` \| null | The Storyteller's recorded winner. Null for games ended without declaring a winner. |
-| `players` | array of `PlayerRecord` | Final roster. See below. |
+| `players` | array of `PlayerRecord` | Final roster, in position order (which equals initial seating). See below. |
 | `phases` | array of `ChroniclePhase` | Events grouped by phase, in play order. See below. |
+
+## `ScriptMetadata`
+
+```json
+{
+  "name": "Trouble Brewing",
+  "author": "The Pandemonium Institute",
+  "version": "1.4.0",
+  "id": "tb",
+  "url": "https://botcscripts.com/script/tb"
+}
+```
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `name` | string \| null | Human-readable script name. Null when no canonical name is available (homebrew, work-in-progress). |
+| `author` | string \| null | Script author. Null when unknown or omitted. |
+| `version` | string \| null | Free-form version string (e.g. `"1.4.0"`, `"draft-2"`). Opaque to ChronicleJSON. |
+| `id` | string \| null | Optional external identifier for the script (e.g. a botcscripts id). Opaque to ChronicleJSON; not required to be a UUID. Omit or set to null when no such id is available. |
+| `url` | string \| null | Optional URL pointing to a published version of the script. |
+
+The top-level `script` field accepts a bare string as shorthand for a `ScriptMetadata` object with only `name` set. Use the object form whenever you have more than just a name.
 
 ## `Storyteller`
 
@@ -51,18 +72,22 @@ The **chronicle** is the self-contained JSON representation of a finished (or in
 {
   "position": 3,
   "name": "Carol",
-  "characters": ["Imp"],
+  "characters": ["imp"],
   "alignment": "evil"
 }
 ```
 
 | Field | Type | Notes |
 |-------|------|-------|
-| `position` | integer | Seat index in the circular layout, **1-based**. `players[0]` has `position: 1`. |
+| `position` | integer | Stable per-player identifier, **1-based**. Assigned when the player is added (at game start or via `playerAdded`) and never changes for that player, including after `playerMoved` events. Distinct from a player's current *seat* (where they're sitting in the circle). `players[0]` has `position: 1`; the array is in position order. |
 | `id` | string \| null | Optional external identifier for the player, carried through if the producing system has one (account id, roster id, etc). Opaque to ChronicleJSON; not required to be a UUID. Omit or set to null when no such id is available. Events still reference players by `position`, not `id`. |
 | `name` | string \| null | Player's name. Null for unnamed seats. |
-| `characters` | array of string | Every character the player held, in time order. The final entry is the player's current / final character; an empty array means they were never assigned one. |
+| `characters` | array of string | Every character the player held, in time order, as character ids (see below). The final entry is the player's current / final character; an empty array means they were never assigned one. |
 | `alignment` | `"good"` \| `"evil"` \| null | The player's current / final alignment. Null when they were never assigned an alignment. Alignment usually tracks the character's team, but may diverge (a Goon, Pit Hag shenanigans, etc). Reconstruct the full alignment history from `alignmentChange` events. |
+
+### Character ids
+
+Characters are identified by their lowercase, no-separator id, not their display name: `"scarletwoman"`, not `"Scarlet Woman"`; `"pithag"`, not `"Pit Hag"`. This matches the convention used by official resources (e.g. https://release.botc.app/resources/).
 
 ## `ChroniclePhase`
 
@@ -174,8 +199,8 @@ Traveller-exile nomination. Structure mirrors `nominationForExecution`, the two 
 | `"failed"` | Didn't meet the threshold and didn't tie. |
 | `"tied"` | Matched the current block-leader's vote count, the block was cleared, nobody gained the block. |
 | `"onTheBlock"` | Became the new block leader. |
-| `"executed"` | Was executed at end of day (vote path). |
-| `"exiled"` | Was exiled (traveller path). |
+| `"executed"` | Resolved to execution at end of day (vote path). Whether the player actually died is recorded by a separate `death` event. Abilities like Devil's Advocate can prevent the death without changing this outcome. |
+| `"exiled"` | Resolved to exile (traveller path). Whether the traveller actually died is recorded by a separate `death` event. Abilities like a funny Deviant can prevent the death without changing this outcome. |
 
 `required` reflects the threshold at the moment of resolution and can rise mid-day to beat the current block leader.
 
@@ -193,6 +218,7 @@ Every death the Storyteller records produces exactly one `death` entry. `reason`
 | Value | Meaning |
 |-------|---------|
 | `"executed"` | Vote-path execution at end of day: the on-the-block player was confirmed dead. |
+| `"exiled"` | Vote-path exile: the traveller was confirmed dead from exile. |
 | `"killed"` | Storyteller-directed death during a night phase (typically a demon kill). |
 | `"died"` | Any other death: Ravenkeeper trigger, Virgin ability, reclassified execution, etc. |
 
@@ -216,19 +242,19 @@ Storyteller brought a dead player back to life.
 }
 ```
 
-A dead player has spent their one-shot dead vote token. Usually emitted alongside a `nominationForExecution` the player voted on, but the Storyteller may record it at any time — including outside a vote, e.g. as a penalty or to reflect a side-effect of an ability. The event stands alone and is not tied to a specific `voteResult`. Mis-recorded entries are corrected by removing the entry, not by emitting a counter-event.
+A dead player has spent their one-shot dead vote token. Usually emitted alongside a `nominationForExecution` the player voted on, but the Storyteller may record it at any time, including outside a vote, e.g. as a penalty or to reflect a side-effect of an ability. The event stands alone and is not tied to a specific `voteResult`. Mis-recorded entries are corrected by removing the entry, not by emitting a counter-event.
 
 ### `characterChange`
 
 ```json
 "characterChange": {
   "playerPosition": 2,
-  "from": "Washerwoman",
-  "to": "Drunk"
+  "from": "washerwoman",
+  "to": "drunk"
 }
 ```
 
-Use for mid-game swaps (script abilities, Pit Hag, Storyteller corrections, etc). `to` may be null if the Storyteller clears a character; `from` is the prior character (nullable in the schema, but in practice always present).
+Use for mid-game swaps (script abilities, Pit Hag, Storyteller corrections, etc). `from` and `to` are character ids. `to` may be null if the Storyteller clears a character; `from` is the prior character (nullable in the schema, but in practice always present).
 
 ### `alignmentChange`
 
@@ -246,17 +272,47 @@ The player's alignment changes independently of their character, e.g. Goon, Pit 
 
 ```json
 "playerAdded": {
+  "position": 12,
+  "seat": 4
+}
+```
+
+A new player joined mid-game (typically a traveller). `position` is the stable per-player identifier assigned to the new player, 1-based and never reused. `seat` is the seat the new player was inserted into, 1-based; existing players at that seat or higher shift up by one to make room. Subsequent `playerMoved` events may relocate the new player.
+
+### `playerRemoved`
+
+```json
+"playerRemoved": {
   "position": 6
 }
 ```
 
-A seat was inserted mid-game (typically a traveller). `position` is 1-based.
+A player left active play (typically an exiled traveller leaving the game, but also covers an IRL drop-out or a Storyteller correction). `position` identifies the leaving player, 1-based. Positions are not reused after removal. Existing players at higher seat numbers shift down by one to close the gap, keeping seats contiguous.
+
+Independent of `death`: a removed player may or may not have a corresponding death entry, and a dead player may remain seated. For example, an exiled traveller who keeps their seat (and dead vote) produces a `death` entry but no `playerRemoved`; a a funny Deviant who survives the exile vote but leaves the game produces a `playerRemoved` but no `death`.
+
+### `playerMoved`
+
+```json
+"playerMoved": {
+  "moves": [
+    { "playerPosition": 3, "toSeat": 5 },
+    { "playerPosition": 5, "toSeat": 7 },
+    { "playerPosition": 7, "toSeat": 3 }
+  ]
+}
+```
+
+One or more players changed seats simultaneously (typically a Matron swap). The whole permutation is recorded as a single event so consumers don't observe an invalid intermediate state. `playerPosition` references the player by their stable position; `toSeat` is the destination seat, 1-based. After the event resolves, each seat is occupied by at most one player.
+
+`playerMoved` is the only event that mutates the seat of an existing player. `position` is unchanged for every player involved.
 
 ## Decoding tips
 
 - **Unknown event variants**: treat the set of event variants as closed-but-extensible. Decode defensively and skip unrecognized single-key objects.
-- **Exile deaths**: a successful exile nomination produces a `voteResult` with `outcome: "exiled"`. The traveller should be transitioned. No `death` entry is written for the exile itself.
-- **Positions**: 1-based throughout (nominations, player records, `playerAdded`). Seats may be non-contiguous if players were added mid-game or relocate for other reasons, but the array order in `players` still matches the circular layout.
+- **Exiles**: a successful exile vote produces a `voteResult` with `outcome: "exiled"`. If the traveller dies, a `death` entry with `reason: "exiled"` follows. If the traveller leaves the game, a `playerRemoved` entry follows. These are independent. Abilities like a funny Deviant can break the usual "exiled, dead, removed" chain.
+- **Positions vs. seats**: `position` is the stable per-player identifier, assigned at add time, never changes, used by every event that references a player. *Seat*, where the player is sitting in the circle, is initialized when the player is added (game-start players sit at seat == position; mid-game adds use `playerAdded.seat` and shift other seats), and changes via `playerMoved`. The `players[]` array is ordered by `position`, not by current seat. To render the current circle, walk `playerAdded`, `playerRemoved`, and `playerMoved` events and apply the resulting seat assignments.
+- **Positions**: 1-based throughout. Positions may be non-contiguous after `playerRemoved` events and are never reused.
 - **Timestamps**: ISO-8601 UTC. Parse leniently, milliseconds may be absent on hand-authored payloads.
 - **Grouping**: events are already grouped by phase. Iterate `phases[*].events` in order to walk the game chronologically. The phase's `phase` + `number` disambiguate same-numbered sections.
 
@@ -266,8 +322,8 @@ A short 5-player Trouble Brewing game: nobody dies Day 1, Imp kills the Empath N
 
 ```json
 {
-  "scriptName": "Trouble Brewing",
-  "storyteller": { "name": "Steve", "id": null },
+  "script": "Trouble Brewing",
+  "storytellers": [{ "name": "Steve", "id": null }],
   "winner": "good",
   "phases": [
     {
@@ -330,11 +386,11 @@ A short 5-player Trouble Brewing game: nobody dies Day 1, Imp kills the Empath N
     }
   ],
   "players": [
-    { "alignment": "good", "characters": ["Washerwoman"], "name": "Alice", "position": 1 },
-    { "alignment": "good", "characters": ["Empath"],      "name": "Bob",   "position": 2 },
-    { "alignment": "evil", "characters": ["Imp"],         "name": "Carol", "position": 3 },
-    { "alignment": "evil", "characters": ["Poisoner"],    "name": "Dan",   "position": 4 },
-    { "alignment": "good", "characters": ["Virgin"],      "name": "Eve",   "position": 5 }
+    { "alignment": "good", "characters": ["washerwoman"], "name": "Alice", "position": 1 },
+    { "alignment": "good", "characters": ["empath"],      "name": "Bob",   "position": 2 },
+    { "alignment": "evil", "characters": ["imp"],         "name": "Carol", "position": 3 },
+    { "alignment": "evil", "characters": ["poisoner"],    "name": "Dan",   "position": 4 },
+    { "alignment": "good", "characters": ["virgin"],      "name": "Eve",   "position": 5 }
   ]
 }
 ```
